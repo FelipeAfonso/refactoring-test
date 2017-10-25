@@ -44,23 +44,34 @@ namespace CodeRefactoring2 {
             var mainRoot = await document.GetSyntaxRootAsync();
             var solution = document.Project.Solution;
             var nodesToBeReplicated = mainRoot.DescendantNodes().First(n => n.GetType() == typeDecl.GetType());//.DescendantNodes();
+            
 
-            foreach (Project p in document.Project.Solution.Projects) {
+            var roots = new Dictionary<Document, SyntaxNode>();
 
-                var doc = p.Documents.FirstOrDefault(d =>
+            for (int i=0; i< solution.Projects.Count(); i++) {
+
+                var doc = solution.Projects.ElementAt(i).Documents.FirstOrDefault(d =>
                         d.Name.Remove(d.Name.IndexOf(".cs")) ==
                         typeDecl.Identifier.Text);
                 if (doc == null) {
                     
-                    solution = p.AddDocument(typeDecl.Identifier.Text + ".cs", mainRoot).Project.Solution;
+                    solution = solution.Projects.ElementAt(i).AddDocument(typeDecl.Identifier.Text + ".cs", mainRoot).Project.Solution;
 
                 } else {
                     var r = await doc.GetSyntaxRootAsync();
                     var targetNode = r.DescendantNodes().First(n => n.GetType() == typeDecl.GetType()); ;
                     r = r.ReplaceNode(targetNode, nodesToBeReplicated);
+
                     solution = doc.WithSyntaxRoot(r).Project.Solution;
+
+                    //roots.Add(doc, r);
                 }
             }
+
+            //foreach(KeyValuePair<Document, SyntaxNode> kvp in roots) {
+            //    solution = kvp.Key.WithSyntaxRoot(kvp.Value).Project.Solution;
+            //}
+
             return solution;
         }
 
